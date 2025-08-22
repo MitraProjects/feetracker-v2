@@ -1,43 +1,261 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Fee Tracker — Admin + Student Self‑Report (Firebase, v3)</title>
-<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cdefs%3E%3CradialGradient id='g' cx='64' cy='64' r='52'%3E%3Cstop offset='0' stop-color='%230084ff'/%3E%3Cstop offset='0.45' stop-color='%230062b8'/%3E%3Cstop offset='1' stop-color='%23004488'/%3E%3C/radialGradient%3E%3ClinearGradient id='shaft' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23b58b3b'/%3E%3Cstop offset='1' stop-color='%238f6a2a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='128' height='128' fill='%23fff'/%3E%3Cpath d='M20,110 C60,80 90,55 108,36' stroke='url(%23shaft)' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='92' cy='28' r='20' fill='%23009066'/%3E%3Cellipse cx='92' cy='28' rx='16' ry='12' fill='%2300c981'/%3E%3Cellipse cx='92' cy='28' rx='9' ry='7' fill='url(%23g)'/%3E%3Ccircle cx='92' cy='28' r='3' fill='%23001133'/%3E%3C/svg%3E"/>
-<style>
-:root{--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--brand:#0f172a}
-*{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;background:var(--bg);color:var(--text)}
-.container{max-width:1100px;margin:0 auto;padding:16px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:16px;margin-bottom:12px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.grow{flex:1}
-.btn{padding:8px 12px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer;font-size:14px}
-.btn.primary{background:var(--brand);color:#fff}.btn.warn{background:#b45309;color:#fff;border-color:#b45309}.btn.ok{background:#059669;color:#fff;border-color:#059669}
-.input,select{padding:8px 10px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;min-width:2ch}
-.tableWrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{border:1px solid var(--border);padding:8px;text-align:left}thead{background:#eef2ff}
-.headerRow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center}.headerLeft{justify-self:start}.headerCenter{justify-self:center}.headerRight{justify-self:end}
-.emblem{width:56px;height:56px}
-.badge{display:inline-block;padding:.2rem .6rem;border-radius:999px;border:1px solid var(--border);background:#f1f5f9;font-size:12px}
-.small{font-size:12px;color:var(--muted)}
-.copy{cursor:pointer;user-select:all}
-.qr{max-width:160px;border:1px dashed var(--border);border-radius:8px;padding:6px;background:#fff}
-.hr{height:1px;background:var(--border);margin:8px 0}
-.note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:8px}
-.error{background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:8px}
-</style>
+  <meta charset="UTF-8" />
+  <title>Fee Tracker (Student Self-Report)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root{
+  --bg:#f6f8fb;
+  --card:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
+  --border:#e5e7eb;
+
+  /* Krishna Blue */
+  --brand:#1e3a8a;      /* deep Krishna blue */
+  --brand-600:#1d4ed8;  /* hover/active */
+  --brand-50:#eef2ff;   /* subtle tint for tables */
+}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 50% -200px, #eaf2ff 0%, rgba(234,242,255,0) 60%),
+        var(--bg);
+    }
+  
+    /* layout */
+    #app{padding:20px}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow:0 10px 30px rgba(2,8,23,.05);
+      padding:18px;
+      margin:14px auto;
+      max-width:1100px;
+    }
+  
+    /* header */
+    .headerRow{
+      display:grid;
+      grid-template-columns:1fr auto 1fr;
+      align-items:center;
+      gap:12px;
+      padding:10px 14px;
+      background:linear-gradient(180deg, #ffffff, #fafcff);
+    }
+    .headerLeft h2{
+      margin:0 0 6px 0;
+      font-size:22px;
+      letter-spacing:.2px;
+    }
+    .headerLeft .muted{font-size:12px;color:var(--muted)}
+    .headerCenter{display:flex; flex-direction:column; align-items:center}
+    .headerCenter .muted{margin-top:6px; font-style:italic; color:#475569}
+    .headerRight{display:flex; justify-content:flex-end; gap:8px; align-items:center}
+  
+    /* emblem */
+    svg, .emblem{height:60px; width:auto}
+  
+    /* tabs (right side) */
+    .tabs button{
+  appearance:none;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  padding:8px 14px;
+  border-radius:999px;
+  cursor:pointer;
+  font-size:13px;
+  transition:all .15s ease;
+}
+.tabs button:hover{ background:var(--brand-50); }
+.tabs button.active{
+  background:var(--brand);
+  border-color:var(--brand);
+  color:#fff;
+  box-shadow:0 4px 12px rgba(30,58,138,.25);
+}
+
+.btn{
+  padding:10px 14px;
+  border-radius:14px;
+  font-size:14px;
+  font-weight:500;
+  cursor:pointer;
+  transition:all .15s ease;
+}
+.btn.primary{
+  background:var(--brand);
+  border:1px solid var(--brand);
+  color:#fff;
+}
+.btn.primary:hover{ background:var(--brand-600); border-color:var(--brand-600); }
+.btn.outline{
+  background:#fff;
+  border:1px solid var(--brand);
+  color:var(--brand);
+}
+.btn.outline:hover{ background:var(--brand-50); }
+
+  
+    /* controls */
+    input,select,textarea{
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      font-size:14px;
+      background:#fff;
+      outline:none;
+      transition:border-color .15s ease, box-shadow .15s ease;
+    }
+    input:focus,select:focus,textarea:focus{
+      border-color:var(--brand-600);
+      box-shadow:0 0 0 3px var(--brand-50);
+    }
+  
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .btn{
+      padding:10px 14px;
+      background:var(--brand);
+      color:#fff;
+      border:1px solid var(--brand);
+      border-radius:12px;
+      cursor:pointer;
+      font-size:14px;
+      transition:all .15s ease;
+    }
+    .btn:hover{background:var(--brand-600); border-color:var(--brand-600); transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
+    .badge{display:inline-block;padding:.25rem .6rem;border-radius:999px;border:1px solid var(--border);background:#f1f5f9;font-size:12px}
+  
+    /* tables */
+    table{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:12px; border:1px solid var(--border)}
+    thead th{
+      background:var(--brand-50);
+      color:#0f172a;
+      font-weight:600;
+      font-size:13px;
+      padding:10px;
+      border-bottom:1px solid var(--border);
+    }
+    tbody td{
+      padding:10px;
+      border-top:1px solid var(--border);
+      vertical-align:middle;
+      font-size:14px;
+    }
+    tbody tr:nth-child(odd){background:#fcfdff}
+    tbody tr:hover{background:#f9fbff}
+  
+    /* helper text */
+    .muted{color:var(--muted)}
+    .qr{max-width:160px;border:1px dashed var(--border);border-radius:10px;padding:6px;background:#fff}
+  
+    /* responsive */
+    @media (max-width: 720px){
+      .headerRow{grid-template-columns:1fr; text-align:center}
+      .headerRight{justify-content:center}
+      input,select,textarea{width:100%}
+      .row{gap:8px}
+      .tabs button{padding:8px 10px}
+    }
+    /* --- Krishna Blue theme + auth spacing polish --- */
+:root{
+  --brand:#1e3a8a;      /* Krishna blue (deep indigo) */
+  --brand-600:#1d4ed8;  /* active/hover */
+  --brand-50:#eef2ff;
+}
+
+/* widen and pad the login card */
+.card.auth{
+  max-width: 560px;         /* wider panel */
+  padding: 28px 28px 26px;
+}
+
+/* larger gaps */
+.form-row{ display:flex; flex-direction:column; gap:8px; margin-bottom:18px; }
+.form-row label{ font-size:13px; color:var(--muted); }
+.auth h2{ margin:0 0 16px 0; font-size:24px; }
+
+/* button grid with comfy spacing */
+.action-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:14px;
+  margin-top:10px;
+}
+
+/* unified rounded buttons */
+.btn{
+  padding:12px 16px;
+  border-radius:14px;
+  font-size:14px;
+}
+
+/* primary vs outline */
+.btn.primary{
+  background:var(--brand);
+  border-color:var(--brand);
+  color:#fff;
+}
+.btn.primary:hover{ background:var(--brand-600); border-color:var(--brand-600); }
+
+.btn.outline{
+  background:#fff;
+  border:1px solid var(--brand);
+  color:var(--brand);
+}
+.btn.outline:hover{
+  background:var(--brand-50);
+}
+
+/* inputs: a bit larger + better focus */
+input[type="email"], input[type="password"]{
+  padding:12px 14px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  font-size:14px;
+}
+input:focus{
+  border-color:var(--brand-600);
+  box-shadow:0 0 0 3px var(--brand-50);
+  outline:none;
+}
+
+/* place helper note at the end in a single line */
+.footer-note{
+  max-width:560px;
+  margin: 10px auto 0;
+  font-size:12px;
+  color:var(--muted);
+  text-align:center;
+}
+
+/* mobile: stack nicely */
+@media (max-width: 520px){
+  .card.auth{ padding:24px 18px; }
+  .action-grid{ grid-template-columns: 1fr; }
+}
+
+  </style>
+   
+     
 </head>
 <body>
 <div id="app"></div>
-<script type="module">
-/* =============================
-   0) 🔧 Firebase setup (paste your config)
-   ============================= */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
-// ⬇️ REPLACE THIS with your project's config
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+
+/* ================== FIREBASE CONFIG (replace values) ================== */
 const firebaseConfig = {
     apiKey: "AIzaSyAeW3aAFG-Ejffz84Zsy1SIHyM2Npx11I4",
     authDomain: "fee-tracker-v3.firebaseapp.com",
@@ -47,228 +265,487 @@ const firebaseConfig = {
     appId: "1:728104140706:web:13ac71568f9d3f959c7cfb",
     measurementId: "G-9Y44Y81DJ1"
   };
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const appFB = initializeApp(firebaseConfig);
+const auth = getAuth(appFB);
+const db = getFirestore(appFB);
+const googleProvider = new GoogleAuthProvider();
 
-/* =============================
-   1) Helpers & data model
-   ============================= */
-const $ = (sel, r=document) => r.querySelector(sel);
-const el = (t, a={}, c=[]) => { const n = document.createElement(t); for(const k in a){ if(k==="class") n.className=a[k]; else if(k.startsWith("on")) n.addEventListener(k.substring(2), a[k]); else n.setAttribute(k,a[k]); } (Array.isArray(c)?c:[c]).filter(Boolean).forEach(x=> n.appendChild(typeof x==="string"? document.createTextNode(x): x)); return n; };
-const FREQ = { monthly:1, tri:3, penta:5 };
-function computePeriod(startISO, freqKey){ const stride = FREQ[freqKey]||1; const start = new Date(startISO|| new Date()); const now = new Date(); const months=(now.getFullYear()-start.getFullYear())*12+(now.getMonth()-start.getMonth()); const blocks=Math.floor(months/stride); const periodStart=new Date(start); periodStart.setMonth(start.getMonth()+blocks*stride); const periodEnd=new Date(periodStart); periodEnd.setMonth(periodStart.getMonth()+stride); const label = `${periodStart.getFullYear()}-${String(periodStart.getMonth()+1).padStart(2,'0')} → ${periodEnd.getFullYear()}-${String(periodEnd.getMonth()+1).padStart(2,'0')}`; const key = `${periodStart.getFullYear()}-${String(periodStart.getMonth()+1).padStart(2,'0')}_m${stride}`; return {periodStart:periodStart.toISOString().slice(0,10), periodEnd:periodEnd.toISOString().slice(0,10), label, key}; }
-
-/* Data model (Firestore)
-- settings/app: { paymentPhone:'+91...', qrImageUrl:'https://...' }
-- users/{uid}: { role:'admin'|'student', name, email }
-- subjects/{id}: { name, defaultFee }
-- batches/{id}: { subjectId, name, day:'Mon', time:'17:30', location }
-- enrollments/{id}: { uid, subjectId, batchId, active:true, startDate:'YYYY-MM-DD', frequency:'monthly'|'tri'|'penta', fee }
-- payments/{id}: { uid, subjectId, batchId, periodKey, amount, datePaid:'YYYY-MM-DD', note, createdAt, verifiedByAdmin:boolean }
-*/
-
-/* =============================
-   2) UI base
-   ============================= */
-const root = document.getElementById('app');
-function layout(children){ root.innerHTML=''; root.appendChild(el('div',{class:'container'}, children)); }
-function krishnaEmblem(){ const svgNS='http://www.w3.org/2000/svg'; const svg=document.createElementNS(svgNS,'svg'); svg.setAttribute('viewBox','0 0 128 128'); svg.setAttribute('class','emblem'); const face=document.createElementNS(svgNS,'circle'); face.setAttribute('cx','64'); face.setAttribute('cy','60'); face.setAttribute('r','28'); face.setAttribute('fill','#3b82f6'); const hair=document.createElementNS(svgNS,'path'); hair.setAttribute('d','M32 56 C40 28, 88 28, 96 56 Z'); hair.setAttribute('fill','#0f172a'); const flute=document.createElementNS(svgNS,'rect'); flute.setAttribute('x','26'); flute.setAttribute('y','94'); flute.setAttribute('width','76'); flute.setAttribute('height','6'); flute.setAttribute('rx','3'); flute.setAttribute('fill','#b58b3b'); svg.append(face,hair,flute); return svg; }
-function header(user){ return el('div',{class:'card headerRow'},[ el('div',{class:'headerLeft'},[ el('h2',{},['📒 Fee Tracker']), el('div',{class:'small'},['Monthly / 3‑monthly / 5‑monthly billing']) ]), el('div',{class:'headerCenter'},[ krishnaEmblem(), el('div',{class:'small',style:'text-align:center;margin-top:4px;font-style:italic;'},'With love and gratitude to my Guru') ]), el('div',{class:'headerRight row'},[ user? el('span',{class:'badge'}, user.email || user.name): null, user? el('button',{class:'btn',onclick:()=>signOut(auth)},'Logout'): null ]) ]); }
-
-/* ============ AUTH VIEWS ============ */
-function loginView(){ const email=el('input',{class:'input',placeholder:'Email'}); const pass=el('input',{class:'input',type:'password',placeholder:'Password'}); const msg=el('div',{class:'small'});
-  const loginBtn=el('button',{class:'btn primary',onclick:async()=>{ try{ await signInWithEmailAndPassword(auth,email.value,pass.value);}catch(e){ msg.textContent=e.message; } }},'Sign in');
-  const reg=el('a',{href:'#',onclick:(e)=>{e.preventDefault(); registerView();}},'Create account');
-  const reset=el('a',{href:'#',onclick:async(e)=>{e.preventDefault(); if(!email.value) return msg.textContent='Enter email above'; try{await sendPasswordResetEmail(auth,email.value); msg.textContent='Reset link sent';}catch(err){msg.textContent=err.message;} }},'Forgot password?');
-  const gBtn=el('button',{class:'btn',onclick:async()=>{ try{ const provider=new GoogleAuthProvider(); await signInWithPopup(auth,provider);}catch(e){ msg.textContent=e.message; } }},'Sign in with Google');
-  const cfgWarn = (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith('PASTE'))? el('div',{class:'error'},'⚠️ Firebase config is not set. Edit this file and paste your project\'s config where indicated.') : null;
-  layout([ header(null), cfgWarn, el('div',{class:'card'},[ el('h3',{},'Sign in'), email, pass, el('div',{class:'row'},[loginBtn,gBtn,reg,reset]), msg, el('div',{class:'note'},'Tip: After you create your account, ask admin to enroll you into subjects/batches.') ]) ]); }
-function registerView(){ const nameI=el('input',{class:'input',placeholder:'Full name'}); const email=el('input',{class:'input',placeholder:'Email'}); const pass=el('input',{class:'input',type:'password',placeholder:'Password (min 6)'}); const msg=el('div',{class:'small'}); const btn=el('button',{class:'btn primary',onclick:async()=>{ try{ const cred=await createUserWithEmailAndPassword(auth,email.value,pass.value); await setDoc(doc(db,'users',cred.user.uid),{role:'student',name:nameI.value,email:email.value}); }catch(e){ msg.textContent=e.message; } }},'Create account'); layout([ header(null), el('div',{class:'card'},[ el('h3',{},'Create account'), nameI, email, pass, btn, msg, el('div',{class:'small'},'After creating, ask admin to enroll you into subjects/batches.') ]) ]); }
-
-/* ============ ROUTER ============ */
-onAuthStateChanged(auth, async (user)=>{ if(!user){ loginView(); return; } const udoc=await getDoc(doc(db,'users',user.uid)); if(!udoc.exists()) await setDoc(doc(db,'users',user.uid),{role:'student',name:user.email,email:user.email}); const role=(await getDoc(doc(db,'users',user.uid))).data().role||'student'; if(role==='admin') adminHome(user); else studentHome(user); });
-
-/* ============ STUDENT HOME ============ */
-async function studentHome(user){
-  // Load settings (gpay phone and optional QR)
-  const settingsDoc = await getDoc(doc(db,'settings','app'));
-  const payPhone = settingsDoc.exists()? (settingsDoc.data().paymentPhone||'') : '';
-  const qrUrl   = settingsDoc.exists()? (settingsDoc.data().qrImageUrl||'') : '';
-
-  // Enrollments
-  const qEnr = query(collection(db,'enrollments'), where('uid','==',user.uid), where('active','==',true));
-  const enrSnap = await getDocs(qEnr);
-  const rows=[];
-  for(const d of enrSnap.docs){
-    const e=d.data();
-    const subj = await getDoc(doc(db,'subjects',e.subjectId)); const subjName=subj.exists()? subj.data().name : '(deleted subject)';
-    const batch = e.batchId? await getDoc(doc(db,'batches',e.batchId)) : null; const batchName = batch && batch.exists()? batch.data().name: '-';
-    const sched = batch && batch.exists()? `${batch.data().day||''} ${batch.data().time||''} @ ${batch.data().location||''}`: '';
-    const period= computePeriod(e.startDate, e.frequency);
-    const fee = e.fee ?? (subj.exists()? (subj.data().defaultFee||0): 0);
-
-    const amountI = el('input',{class:'input',type:'number',placeholder:String(fee),min:'0'});
-    const dateI = el('input',{class:'input',type:'date',value:new Date().toISOString().slice(0,10)});
-    const noteI = el('input',{class:'input',placeholder:'Reference / UPI / note'});
-    const msg = el('div',{class:'small'});
-    const submitBtn = el('button',{class:'btn ok',onclick:async()=>{
-      try{ await addDoc(collection(db,'payments'),{ uid:user.uid, subjectId:e.subjectId, batchId:e.batchId||null, periodKey:period.key, amount: Number(amountI.value||fee), datePaid: dateI.value, note: noteI.value||'', createdAt: serverTimestamp(), verifiedByAdmin:false }); msg.textContent='Submitted. Awaiting admin verification.'; amountI.value=''; noteI.value=''; }
-      catch(err){ msg.textContent=err.message; }
-    }},'Mark Paid');
-
-    rows.push(el('tr',{},[ el('td',{},subjName), el('td',{}, batchName), el('td',{}, e.frequency==='monthly'? 'Monthly': (e.frequency==='tri'?'Every 3 months':'Every 5 months')), el('td',{}, period.label), el('td',{}, '₹ '+fee), el('td',{}, el('div',{class:'row'},[amountI,dateI, noteI, submitBtn])), el('td',{}, msg) ]));
+/* ================== DOM helpers & globals ================== */
+function el(tag, attrs={}, children=[]) {
+  const e = document.createElement(tag);
+  for (let k in attrs) {
+    if(k==="class") e.className = attrs[k];
+    else if(k.startsWith("on")) e.addEventListener(k.substring(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
   }
+  (Array.isArray(children)?children:[children]).forEach(c => e.appendChild(typeof c==="string"?document.createTextNode(c):c));
+  return e;
+}
+const appDiv = document.getElementById("app");
+let currentUser = null;
+let currentTab = "payments";
 
-  const payHelp = el('div',{class:'card'},[
-    el('h3',{},'How to pay'),
-    el('div',{}, [ 'Pay via GPay to: ', el('b',{class:'copy',onclick:()=>{ navigator.clipboard?.writeText(payPhone); }}, payPhone||'(not set)') ]),
-    qrUrl? el('div',{class:'row'},[ el('img',{class:'qr',src:qrUrl,alt:'Payment QR'}), el('div',{class:'small'},'Scan this QR in GPay/UPI (optional)') ]): el('div',{class:'small'},'QR code not configured yet — admin can add one later.'),
+/* ================== Billing utils ================== */
+const FREQ = { monthly:1, tri:3, penta:5 };
+function computePeriod(startISO, freqKey){
+  const stride = FREQ[freqKey]||1;
+  const start = new Date(startISO|| new Date());
+  const now = new Date();
+  const months = (now.getFullYear()-start.getFullYear())*12 + (now.getMonth()-start.getMonth());
+  const blocks = Math.floor(months/stride);
+  const periodStart = new Date(start);
+  periodStart.setMonth(start.getMonth()+blocks*stride);
+  const periodEnd = new Date(periodStart);
+  periodEnd.setMonth(periodStart.getMonth()+stride);
+  const label = `${periodStart.getFullYear()}-${String(periodStart.getMonth()+1).padStart(2,'0')} → ${periodEnd.getFullYear()}-${String(periodEnd.getMonth()+1).padStart(2,'0')}`;
+  const key = `${periodStart.getFullYear()}-${String(periodStart.getMonth()+1).padStart(2,'0')}_m${stride}`;
+  return { periodStart: periodStart.toISOString().slice(0,10), periodEnd: periodEnd.toISOString().slice(0,10), label, key };
+}
+
+/* ================== Header & emblem ================== */
+function krishnaEmblem(){
+  const svgNS='http://www.w3.org/2000/svg';
+  const s=document.createElementNS(svgNS,'svg'); s.setAttribute('viewBox','0 0 128 128'); s.style.height='56px';
+  const face=document.createElementNS(svgNS,'circle'); face.setAttribute('cx','64'); face.setAttribute('cy','60'); face.setAttribute('r','28'); face.setAttribute('fill','#3b82f6');
+  const hair=document.createElementNS(svgNS,'path'); hair.setAttribute('d','M32 56 C40 28, 88 28, 96 56 Z'); hair.setAttribute('fill','#0f172a');
+  const flute=document.createElementNS(svgNS,'rect'); flute.setAttribute('x','26'); flute.setAttribute('y','94'); flute.setAttribute('width','76'); flute.setAttribute('height','6'); flute.setAttribute('rx','3'); flute.setAttribute('fill','#b58b3b');
+  s.append(face,hair,flute); return s;
+}
+function tabBtn(id,label){
+  return el("button",{class:(currentTab===id?"active":""),onclick:()=>{currentTab=id; render();}},label);
+}
+function header(){
+  const titleBox = el('div',{class:'headerLeft'},[
+    el('h2',{},["📒 Fee Tracker"]),
+    el('div',{class:'muted'},["Student self-report system"])
+  ]);
+  const emblemBox = el("div",{class:"headerCenter"},[
+    krishnaEmblem(),
+    el("div",{class:"muted",style:"text-align:center;margin-top:4px;font-style:italic"}, "With love and gratitude to my Guru")
+  ]);
+  const tabs = el("div",{class:"headerRight row tabs"},[
+    tabBtn("payments","My Payments"),
+    tabBtn("receipts","My Receipts"),
+    tabBtn("students","Students"),   // admin
+    tabBtn("subjects","Subjects"),   // admin
+    tabBtn("batches","Batches"),     // admin
+    tabBtn("settings","Settings"),   // admin
+    el("button",{class:"btn",onclick:()=>{signOut(auth)}}, "Logout")
+  ]);
+  return el("div",{class:"card headerRow"},[titleBox, emblemBox, tabs]);
+}
+
+/* ================== Login/Register ================== */
+function loginScreen(){
+  appDiv.innerHTML = "";
+
+  const card = el("div",{class:"card auth"},[
+    el("h2",{},"Sign in"),
+
+    el("div",{class:"form-row"},[
+      el("label",{for:"email"},"Email"),
+      el("input",{id:"email",type:"email",placeholder:"you@example.com",autocomplete:"email"})
+    ]),
+
+    el("div",{class:"form-row"},[
+      el("label",{for:"password"},"Password"),
+      el("input",{id:"password",type:"password",placeholder:"••••••••",autocomplete:"current-password"})
+    ]),
+
+    // Row 1
+    el("div",{class:"action-grid"},[
+      el("button",{class:"btn primary", onclick:()=>loginEmail()},"Sign in"),
+      el("button",{class:"btn outline", onclick:()=>loginGoogle()},"Sign in with Google")
+    ]),
+
+    // Row 2
+    el("div",{class:"action-grid"},[
+      el("button",{class:"btn outline", onclick:()=>resetEmail()},"Reset password"),
+      el("button",{class:"btn primary", onclick:()=>signupEmail()},"Create account")
+    ])
   ]);
 
-  const paymentsTable = el('table',{},[ el('thead',{}, el('tr',{}, [el('th',{},'Subject'), el('th',{},'Batch'), el('th',{},'Model'), el('th',{},'Current Period'), el('th',{},'Due'), el('th',{},'Report Payment'), el('th',{},'Status') ])), el('tbody',{}, rows) ]);
+  const note = el("div",{class:"footer-note"},
+    "After creating an account, the admin will enroll you to subjects/batches."
+  );
 
-  // My Receipts (verified payments)
-  const qPay = query(collection(db,'payments'), where('uid','==',user.uid), where('verifiedByAdmin','==',true), orderBy('createdAt','desc'));
-  const paySnap = await getDocs(qPay);
-  const rRows=[];
-  for(const d of paySnap.docs){ const p=d.data(); const subj=await getDoc(doc(db,'subjects',p.subjectId)); const subjName=subj.exists()? subj.data().name:'(subject)'; const batch=p.batchId? await getDoc(doc(db,'batches',p.batchId)):null; const batchName=batch&&batch.exists()? batch.data().name: '-'; const btn= el('button',{class:'btn',onclick:()=> downloadReceipt(user, subjName, batchName, p) },'Download Receipt'); rRows.push(el('tr',{},[ el('td',{},subjName), el('td',{},batchName), el('td',{},p.periodKey), el('td',{},'₹ '+p.amount), el('td',{},p.datePaid), el('td',{},btn) ])); }
-  const receiptsTable = el('table',{},[ el('thead',{}, el('tr',{}, [el('th',{},'Subject'), el('th',{},'Batch'), el('th',{},'Period'), el('th',{},'Amount'), el('th',{},'Date'), el('th',{},'Receipt') ])), el('tbody',{}, rRows) ]);
-
-  layout([ header(user), payHelp, el('div',{class:'card'},[ el('h3',{},'My Payments'), el('div',{class:'small'},'Submit your payment for the current period. Admin will verify.'), paymentsTable ]), el('div',{class:'card'},[ el('h3',{},'My Receipts (Verified)'), receiptsTable ]) ]);
+  appDiv.appendChild(card);
+  appDiv.appendChild(note);
 }
 
-function downloadReceipt(user, subjectName, batchName, p){
-  const w = window.open('', '_blank');
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt</title><style>body{font-family:ui-sans-serif;line-height:1.5;padding:24px} .box{border:1px solid #e2e8f0;border-radius:12px;padding:16px} h2{margin:0 0 8px 0} .row{display:flex;justify-content:space-between} .muted{color:#64748b;font-size:12px}</style></head><body>
-  <h2>Payment Receipt</h2>
-  <div class="box">
-    <div class="row"><div><b>Student</b><br>${user.email}</div><div><b>Issued</b><br>${new Date().toISOString().slice(0,10)}</div></div>
-    <div style="height:1px;background:#e2e8f0;margin:12px 0"></div>
-    <div><b>Subject:</b> ${subjectName}</div>
-    <div><b>Batch:</b> ${batchName}</div>
-    <div><b>Period:</b> ${p.periodKey}</div>
-    <div><b>Amount:</b> ₹ ${p.amount}</div>
-    <div><b>Paid on:</b> ${p.datePaid}</div>
-    <div class="muted">Verified by Admin</div>
-  </div>
-  <script>window.print();</script>
-  </body></html>`;
-  w.document.write(html); w.document.close();
+
+async function loginEmail(){
+  const email=document.getElementById("email").value;
+  const pw=document.getElementById("password").value;
+  try{ await signInWithEmailAndPassword(auth,email,pw); }catch(e){ alert(e.message); }
+}
+async function signupEmail(){
+  const email=document.getElementById("email").value;
+  const pw=document.getElementById("password").value;
+  try{
+    const cred = await createUserWithEmailAndPassword(auth,email,pw);
+    await setDoc(doc(db,"users",cred.user.uid),{role:"student",name:email,email});
+  }catch(e){ alert(e.message); }
+}
+async function resetEmail(){
+  const email=document.getElementById("email").value;
+  if(!email) return alert("Enter your email above first");
+  try{ await sendPasswordResetEmail(auth,email); alert("Reset link sent"); }catch(e){ alert(e.message); }
+}
+async function loginGoogle(){
+  try{
+    const res = await signInWithPopup(auth,googleProvider);
+    const uref = doc(db,"users",res.user.uid);
+    const u = await getDoc(uref);
+    if(!u.exists()) await setDoc(uref,{role:"student",name:res.user.displayName||res.user.email,email:res.user.email});
+  }catch(e){ alert(e.message); }
 }
 
-/* ============ ADMIN HOME ============ */
-async function adminHome(user){
-  const top = el('div',{class:'card'},[ el('h3',{},'Admin'), el('div',{class:'small'},'Manage subjects, batches, enrollments and verify payments') ]);
-
-  // SETTINGS: payment phone + QR URL
-  const settingsWrap = el('div',{class:'card'}); settingsWrap.append(el('h3',{},'Payment Settings (GPay)'));
-  const phoneI=el('input',{class:'input',placeholder:'+91xxxxxxxxxx'});
-  const qrI=el('input',{class:'input',placeholder:'QR image URL (optional, can add later)'});
-  const saveSet=el('button',{class:'btn primary',onclick:async()=>{ await setDoc(doc(db,'settings','app'),{paymentPhone:phoneI.value, qrImageUrl:qrI.value},{merge:true}); alert('Saved'); }},'Save');
-  const testEmail=el('button',{class:'btn',onclick:async()=>{ try{ await addDoc(collection(db,'mail'),{ to:[user.email], message:{ subject:'Test email from Fee Tracker', text:'This is a test from the admin panel.', html:'<p>This is a test from the admin panel.</p>' } }); alert('Queued test email. (Requires Trigger Email extension)'); }catch(err){ alert('Failed to queue email: '+err.message); } }},'Send test email');
-  (async()=>{ const s=await getDoc(doc(db,'settings','app')); if(s.exists()){ phoneI.value=s.data().paymentPhone||''; qrI.value=s.data().qrImageUrl||''; } })();
-  settingsWrap.append(el('div',{class:'row'},[phoneI,qrI,saveSet,testEmail]));
-
-  // SUBJECTS
-  const subjWrap = el('div',{class:'card'}); subjWrap.append(el('h3',{},'Subjects'));
-  const sName=el('input',{class:'input',placeholder:'e.g., Mahabharata'});
-  const sFee=el('input',{class:'input',type:'number',placeholder:'Default fee (₹)'});
-  subjWrap.append(el('div',{class:'row'},[sName,sFee, el('button',{class:'btn primary',onclick:async()=>{ if(!sName.value.trim()) return; await addDoc(collection(db,'subjects'),{name:sName.value.trim(), defaultFee: Number(sFee.value||0)}); sName.value=''; sFee.value=''; loadSubjects(); }},'Add Subject')]));
-  const subjList = el('div'); subjWrap.append(subjList);
-  async function loadSubjects(){ subjList.innerHTML=''; const snap = await getDocs(query(collection(db,'subjects'))); snap.forEach(d=>{ const s=d.data(); subjList.append(el('div',{class:'row',style:'justify-content:space-between;border-bottom:1px solid var(--border);padding:6px 0'},[ el('div',{},`${s.name} · ₹${s.defaultFee||0}`) ])); }); }
-
-  // BATCHES (per subject)
-  const batchWrap = el('div',{class:'card'}); batchWrap.append(el('h3',{},'Batches & Schedule'));
-  const bSubSel = el('select'); (async()=>{ const sSnap=await getDocs(collection(db,'subjects')); sSnap.forEach(s=> bSubSel.append(el('option',{value:s.id}, s.data().name))); })();
-  const bName=el('input',{class:'input',placeholder:'Batch name (e.g., Morning)'});
-  const bDay=el('select',{},['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=> el('option',{value:d},d)));
-  const bTime=el('input',{class:'input',type:'time'});
-  const bLoc=el('input',{class:'input',placeholder:'Location / Zoom link'});
-  const addBatch=el('button',{class:'btn ok',onclick:async()=>{ if(!bSubSel.value||!bName.value.trim()) return; await addDoc(collection(db,'batches'),{subjectId:bSubSel.value, name:bName.value.trim(), day:bDay.value, time:bTime.value||'', location:bLoc.value||''}); bName.value=''; bTime.value=''; bLoc.value=''; loadBatches(); }},'Add Batch');
-  const batchList = el('div'); batchWrap.append(el('div',{class:'row'},[bSubSel,bName,bDay,bTime,bLoc,addBatch]), batchList);
-  async function loadBatches(){ batchList.innerHTML=''; const snap=await getDocs(collection(db,'batches')); for(const d of snap.docs){ const b=d.data(); const subj=await getDoc(doc(db,'subjects',b.subjectId)); batchList.append(el('div',{class:'row',style:'border-bottom:1px solid var(--border);padding:6px 0'},[ el('div',{class:'grow'},`${subj.data()?.name} · ${b.name} · ${b.day} ${b.time} @ ${b.location}`) ])); } }
-
-  // STUDENTS (users) + ENROLL
-  const stuWrap = el('div',{class:'card'}); stuWrap.append(el('h3',{},'Students & Enrollments'));
-  const stuList = el('div'); stuWrap.append(stuList);
-  async function loadStudents(){ stuList.innerHTML=''; const snap = await getDocs(query(collection(db,'users')));
-    snap.forEach(d=>{ const u=d.data(); const uid=d.id; const roleSel = el('select',{}, [el('option',{value:'student'},'student'), el('option',{value:'admin'},'admin')]); roleSel.value = u.role||'student';
-      const saveRole = el('button',{class:'btn',onclick:async()=>{ await updateDoc(doc(db,'users',uid),{role:roleSel.value}); loadStudents(); }},'Save role');
-      const subSel = el('select'); (async()=>{ const sSnap=await getDocs(collection(db,'subjects')); subSel.append(el('option',{value:''},'Select subject')); sSnap.forEach(s=> subSel.append(el('option',{value:s.id}, s.data().name))); })();
-      const batchSel = el('select'); batchSel.append(el('option',{value:''},'Select batch')); // populated later when subject chosen
-      subSel.addEventListener('change', async ()=>{ batchSel.innerHTML=''; batchSel.append(el('option',{value:''},'Select batch')); if(!subSel.value) return; const qB=query(collection(db,'batches'), where('subjectId','==',subSel.value)); const bSnap=await getDocs(qB); bSnap.forEach(b=> batchSel.append(el('option',{value:b.id}, b.data().name))); });
-      const freqSel = el('select',{}, [el('option',{value:'monthly'},'Monthly'), el('option',{value:'tri'},'Every 3 months'), el('option',{value:'penta'},'Every 5 months')]);
-      const startI = el('input',{class:'input',type:'date',value:new Date().toISOString().slice(0,10)});
-      const feeI = el('input',{class:'input',type:'number',placeholder:'Fee (optional)'});
-      const enrollBtn = el('button',{class:'btn ok',onclick:async()=>{ if(!subSel.value) return; await addDoc(collection(db,'enrollments'),{uid, subjectId:subSel.value, batchId: batchSel.value||null, active:true, startDate:startI.value, frequency:freqSel.value, fee: feeI.value? Number(feeI.value): null}); loadEnrollments(); }},'Enroll');
-      stuList.append(el('div',{class:'row',style:'border-bottom:1px solid var(--border);padding:6px 0'},[ el('div',{class:'grow'}, `${u.name||u.email} · ${u.email}`), roleSel, saveRole, subSel, batchSel, freqSel, startI, feeI, enrollBtn ])); }); }
-
-  // ENROLLMENTS list with ability to deactivate
-  const enrWrap = el('div',{class:'card'}); enrWrap.append(el('h3',{},'Enrollments'));
-  const enrList = el('div'); enrWrap.append(enrList);
-  async function loadEnrollments(){ enrList.innerHTML=''; const snap = await getDocs(collection(db,'enrollments')); for(const d of snap.docs){ const e=d.data(); const userDoc = await getDoc(doc(db,'users',e.uid)); const subjDoc = await getDoc(doc(db,'subjects',e.subjectId)); const batchDoc = e.batchId? await getDoc(doc(db,'batches',e.batchId)) : null; const row = el('div',{class:'row',style:'border-bottom:1px solid var(--border);padding:6px 0'},[ el('div',{class:'grow'}, `${userDoc.data()?.name||userDoc.data()?.email} → ${subjDoc.data()?.name} (${e.frequency}) · Batch: ${batchDoc&&batchDoc.exists()? batchDoc.data().name:'-'}`), el('button',{class:'btn warn',onclick:async()=>{ await updateDoc(doc(db,'enrollments',d.id),{active:false}); loadEnrollments(); }},'Quit') ]); enrList.append(row); } }
-
-  // PAYMENTS to verify + email notification
-  const payWrap = el('div',{class:'card'}); payWrap.append(el('h3',{},'Payments to Verify'));
-  const payList = el('div'); payWrap.append(payList);
-  async function loadPayments(){ payList.innerHTML=''; const snap = await getDocs(query(collection(db,'payments'), orderBy('createdAt','desc'))); for(const d of snap.docs){ const p=d.data(); const userDoc = await getDoc(doc(db,'users',p.uid)); const subjDoc = await getDoc(doc(db,'subjects',p.subjectId)); const row = el('div',{class:'row',style:'border-bottom:1px solid var(--border);padding:6px 0'},[ el('div',{class:'grow'}, `${userDoc.data()?.name||userDoc.data()?.email} · ${subjDoc.data()?.name} · ${p.periodKey} · ₹${p.amount} · ${p.datePaid}`), el('div',{}, p.verifiedByAdmin? el('span',{class:'badge'},'Verified'): el('button',{class:'btn ok',onclick:async()=>{ await updateDoc(doc(db,'payments',d.id),{verifiedByAdmin:true});
-        // Send email via Firebase Extension (Trigger Email) by writing to /mail
-        try{ await addDoc(collection(db,'mail'),{ to:[userDoc.data()?.email], message:{ subject:`Fee received — ${subjDoc.data()?.name}`, text:`Dear ${userDoc.data()?.name||''},\n\nWe have verified your payment.\nSubject: ${subjDoc.data()?.name}\nPeriod: ${p.periodKey}\nAmount: ₹${p.amount}\nDate: ${p.datePaid}\n\nThank you.`, html:`<p>Dear ${userDoc.data()?.name||''},</p><p>We have <b>verified</b> your payment.</p><ul><li><b>Subject:</b> ${subjDoc.data()?.name}</li><li><b>Period:</b> ${p.periodKey}</li><li><b>Amount:</b> ₹${p.amount}</li><li><b>Date:</b> ${p.datePaid}</li></ul><p>Thank you.</p>` } }); }catch(err){ console.warn('Email queue failed', err); }
-        loadPayments(); }},'Verify')) ]); payList.append(row); } }
-
-  layout([ header(user), settingsWrap, subjWrap, batchWrap, stuWrap, enrWrap, payWrap ]);
-  await Promise.all([loadSubjects(), loadBatches(), loadStudents(), loadEnrollments(), loadPayments()]);
+/* ================== Admin: Payment Settings (GPay) ================== */
+async function adminSettingsCard(){
+  const wrap = el("div",{class:"card"},[ el("h3",{},"Payment Settings (GPay)") ]);
+  const phoneI = el("input",{placeholder:"+91xxxxxxxxxx"});
+  const qrI    = el("input",{placeholder:"QR image URL (optional)"});
+  const sdoc = await getDoc(doc(db,"settings","app"));
+  if(sdoc.exists()){ phoneI.value = sdoc.data().paymentPhone||""; qrI.value=sdoc.data().qrImageUrl||""; }
+  const saveBtn = el("button",{class:"btn",onclick:async()=>{
+    await setDoc(doc(db,"settings","app"),{paymentPhone:phoneI.value, qrImageUrl:qrI.value},{merge:true});
+    alert("Saved");
+  }},"Save");
+  wrap.append(el("div",{class:"row"},[phoneI, qrI, saveBtn]));
+  return wrap;
 }
-</script>
 
-<!-- =============================
-     🔐 FIRESTORE SECURITY RULES (copy into Firestore Rules)
-     =============================
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function isAdmin() { return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
+/* ================== Admin: Subjects ================== */
+async function adminSubjectsCard(){
+  const wrap = el("div",{class:"card"},[ el("h3",{},"Subjects") ]);
+  const nameI = el("input",{placeholder:"Subject name (e.g., Mahabharata)"});
+  const feeI  = el("input",{placeholder:"Default fee (₹)", type:"number"});
+  const addBtn= el("button",{class:"btn",onclick:async()=>{
+    if(!nameI.value.trim()) return alert("Enter subject name");
+    await addDoc(collection(db,"subjects"),{name:nameI.value.trim(), defaultFee:Number(feeI.value||0)});
+    nameI.value=""; feeI.value=""; render();
+  }},"Add Subject");
+  wrap.append(el("div",{class:"row"},[nameI, feeI, addBtn]));
 
-    match /settings/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
+  const list = el("div");
+  const snap = await getDocs(collection(db,"subjects"));
+  snap.forEach(d=>{
+    const s=d.data();
+    list.append(el("div",{class:"row", style:"justify-content:space-between;border-top:1px solid var(--border);padding-top:8px;margin-top:8px"},[
+      el("div",{},`${s.name} · ₹${s.defaultFee||0}`)
+    ]));
+  });
+  wrap.append(list);
+  return wrap;
+}
 
-    match /users/{uid} {
-      allow read: if isAdmin() || (isSignedIn() && uid == request.auth.uid);
-      allow write: if isAdmin() || (isSignedIn() && uid == request.auth.uid);
-    }
+/* ================== Admin: Batches & Schedule ================== */
+async function adminBatchesCard(){
+  const wrap = el("div",{class:"card"},[ el("h3",{},"Batches & Schedule") ]);
+  const subjSel = el("select"); subjSel.append(el("option",{value:""},"Select subject"));
+  const sSnap = await getDocs(collection(db,"subjects"));
+  sSnap.forEach(s=> subjSel.append(el("option",{value:s.id}, s.data().name)));
 
-    match /subjects/{id} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
+  const nameI = el("input",{placeholder:"Batch name (e.g., Morning)"});
+  const daySel= el("select",{},["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=>el("option",{value:d},d)));
+  const timeI = el("input",{type:"time"});
+  const locI  = el("input",{placeholder:"Location / Zoom link"});
+  const addBtn= el("button",{class:"btn",onclick:async()=>{
+    if(!subjSel.value || !nameI.value.trim()) return alert("Choose subject and batch name");
+    await addDoc(collection(db,"batches"),{subjectId:subjSel.value, name:nameI.value.trim(), day:daySel.value, time:timeI.value||"", location:locI.value||""});
+    nameI.value=""; timeI.value=""; locI.value=""; render();
+  }},"Add Batch");
+  wrap.append(el("div",{class:"row"},[subjSel,nameI,daySel,timeI,locI,addBtn]));
 
-    match /batches/{id} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /enrollments/{id} {
-      allow read: if isSignedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-    }
-
-    match /payments/{id} {
-      allow read: if isSignedIn() && (isAdmin() || resource.data.uid == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid; // students submit
-      allow update: if isAdmin(); // admin verifies
-    }
-
-    // For Firebase Extension: Trigger Email
-    match /mail/{id} {
-      allow read, write: if isAdmin(); // only admins queue emails
-    }
+  const list = el("div");
+  const bSnap = await getDocs(collection(db,"batches"));
+  for(const d of bSnap.docs){
+    const b=d.data(); const subj=await getDoc(doc(db,"subjects",b.subjectId));
+    list.append(el("div",{class:"row", style:"border-top:1px solid var(--border);padding-top:8px;margin-top:8px"},[
+      el("div",{},`${subj.data()?.name||"(subject)"} · ${b.name} · ${b.day} ${b.time} @ ${b.location}`)
+    ]));
   }
+  wrap.append(list);
+  return wrap;
 }
--->
+
+/* ================== Admin: Students & Enrollments ================== */
+async function adminStudentsCard(){
+  const wrap = el("div",{class:"card"},[ el("h3",{},"Students & Enrollments") ]);
+  const list = el("div"); wrap.append(list);
+
+  const usersSnap = await getDocs(collection(db,"users"));
+  for(const udoc of usersSnap.docs){
+    const u = udoc.data(); const uid = udoc.id;
+    const roleSel = el("select",{},[ el("option",{value:"student"},"student"), el("option",{value:"admin"},"admin") ]);
+    roleSel.value = u.role||"student";
+    const saveRole = el("button",{class:"btn",onclick:async()=>{ await updateDoc(doc(db,"users",uid),{role:roleSel.value}); alert("Role saved"); }},"Save role");
+
+    const subjSel = el("select"); subjSel.append(el("option",{value:""},"Select subject"));
+    const sSnap = await getDocs(collection(db,"subjects")); sSnap.forEach(s=> subjSel.append(el("option",{value:s.id}, s.data().name)));
+    const batchSel= el("select"); batchSel.append(el("option",{value:""},"Select batch"));
+    subjSel.addEventListener("change", async ()=>{
+      batchSel.innerHTML=""; batchSel.append(el("option",{value:""},"Select batch"));
+      if(!subjSel.value) return;
+      const qB = query(collection(db,"batches"), where("subjectId","==",subjSel.value));
+      const bSnap= await getDocs(qB); bSnap.forEach(b=> batchSel.append(el("option",{value:b.id}, b.data().name)));
+    });
+
+    const freqSel = el("select",{},[
+      el("option",{value:"monthly"},"Monthly"),
+      el("option",{value:"tri"},"Every 3 months"),
+      el("option",{value:"penta"},"Every 5 months"),
+    ]);
+    const startI = el("input",{type:"date", value:new Date().toISOString().slice(0,10)});
+    const feeI   = el("input",{type:"number", placeholder:"Fee (optional)"});
+    const enrollBtn = el("button",{class:"btn",onclick:async()=>{
+      if(!subjSel.value) return alert("Select subject");
+      await addDoc(collection(db,"enrollments"),{
+        uid, subjectId:subjSel.value, batchId: batchSel.value||null,
+        active:true, startDate:startI.value, frequency:freqSel.value,
+        fee: feeI.value? Number(feeI.value): null
+      });
+      alert("Enrolled"); render();
+    }},"Enroll");
+
+    list.append(el("div",{class:"row", style:"border-top:1px solid var(--border);padding-top:8px;margin-top:8px"},[
+      el("div",{}, `${u.name||u.email} · ${u.email}`),
+      roleSel, saveRole, subjSel, batchSel, freqSel, startI, feeI, enrollBtn
+    ]));
+  }
+  return wrap;
+}
+
+/* ================== Admin: Payments to Verify ================== */
+async function adminPaymentsCard(){
+  const wrap = el("div",{class:"card"},[ el("h3",{},"Payments to Verify") ]);
+  const list = el("div"); wrap.append(list);
+
+  const pSnap = await getDocs(query(collection(db,"payments"), orderBy("createdAt","desc")));
+  for(const d of pSnap.docs){
+    const p = d.data();
+    const userDoc = await getDoc(doc(db,"users",p.uid));
+    const subjDoc = await getDoc(doc(db,"subjects",p.subjectId));
+    list.append(
+      el("div",{class:"row", style:"border-top:1px solid var(--border);padding-top:8px;margin-top:8px;justify-content:space-between"},[
+        el("div",{}, `${userDoc.data()?.name||userDoc.data()?.email} · ${subjDoc.data()?.name||"(subject)"} · ${p.periodKey} · ₹${p.amount} · ${p.datePaid}`),
+        p.verifiedByAdmin
+          ? el("span",{class:"badge"},"Verified")
+          : el("button",{class:"btn",onclick:async()=>{
+              await updateDoc(doc(db,"payments",d.id),{verifiedByAdmin:true});
+              // queue email (optional Firebase Extension will send it)
+              try{
+                await addDoc(collection(db,"mail"),{
+                  to:[userDoc.data()?.email],
+                  message:{
+                    subject:`Fee received — ${subjDoc.data()?.name||""}`,
+                    text:`Dear ${userDoc.data()?.name||""},
+We have verified your payment.
+Subject: ${subjDoc.data()?.name||""}
+Period: ${p.periodKey}
+Amount: ₹${p.amount}
+Date: ${p.datePaid}
+
+Thank you.`,
+                    html:`<p>Dear ${userDoc.data()?.name||""},</p><p>We have <b>verified</b> your payment.</p><ul><li><b>Subject:</b> ${subjDoc.data()?.name||""}</li><li><b>Period:</b> ${p.periodKey}</li><li><b>Amount:</b> ₹${p.amount}</li><li><b>Date:</b> ${p.datePaid}</li></ul><p>Thank you.</p>`
+                  }
+                });
+              }catch(e){ console.warn("Email queue failed:", e.message); }
+              render();
+            }},"Verify")
+      ])
+    );
+  }
+  return wrap;
+}
+
+/* ================== Student: My Payments ================== */
+async function studentPaymentsCard(uid){
+  const wrap = el("div",{class:"card"},[ el("h3",{},"My Payments"), el("div",{class:"muted"},"Submit your payment for the current period. Admin will verify.") ]);
+
+  // GPay details
+  const sdoc = await getDoc(doc(db,"settings","app"));
+  const phone = sdoc.exists()? (sdoc.data().paymentPhone||"") : "";
+  const qrUrl = sdoc.exists()? (sdoc.data().qrImageUrl||"") : "";
+  wrap.append(el("div",{class:"row"},[
+    el("div",{}, ["Pay via GPay to: ", el("b",{}, phone || "(not set)")]),
+    qrUrl ? el("img",{class:"qr",src:qrUrl,alt:"Payment QR"}) : el("span",{class:"muted"},"(QR not configured yet)")
+  ]));
+
+  const table = el("table");
+  table.appendChild(el("thead",{}, el("tr",{},[
+    el("th",{},"Subject"),
+    el("th",{},"Batch"),
+    el("th",{},"Model"),
+    el("th",{},"Current Period"),
+    el("th",{},"Due"),
+    el("th",{},"Report Payment"),
+    el("th",{},"Status")
+  ])));
+  const tbody = el("tbody"); table.appendChild(tbody);
+
+  const qEnr = query(collection(db,"enrollments"), where("uid","==",uid), where("active","==",true));
+  const enrSnap = await getDocs(qEnr);
+
+  for(const d of enrSnap.docs){
+    const e = d.data();
+    const subjDoc = await getDoc(doc(db,"subjects", e.subjectId));
+    const subjName = subjDoc.exists()? subjDoc.data().name : "(subject)";
+    const batchDoc = e.batchId ? await getDoc(doc(db,"batches", e.batchId)) : null;
+    const batchName = (batchDoc && batchDoc.exists())? batchDoc.data().name : "-";
+    const model = e.frequency==="monthly" ? "Monthly" : (e.frequency==="tri" ? "Every 3 months" : "Every 5 months");
+    const fee = e.fee ?? (subjDoc.exists()? (subjDoc.data().defaultFee||0) : 0);
+    const period = computePeriod(e.startDate, e.frequency);
+
+    const amountI = el("input",{type:"number", placeholder:String(fee)});
+    const dateI   = el("input",{type:"date", value:new Date().toISOString().slice(0,10)});
+    const noteI   = el("input",{placeholder:"Reference / UPI / note"});
+    const msg     = el("div",{class:"muted"});
+
+    const submit = el("button",{class:"btn", onclick:async()=>{
+      try{
+        await addDoc(collection(db,"payments"),{
+          uid, subjectId:e.subjectId, batchId: e.batchId||null,
+          periodKey: period.key, amount: Number(amountI.value||fee),
+          datePaid: dateI.value, note: noteI.value||"",
+          createdAt: serverTimestamp(), verifiedByAdmin:false
+        });
+        msg.textContent = "Submitted. Awaiting admin verification.";
+        amountI.value = ""; noteI.value = "";
+      }catch(err){
+        msg.textContent = err.message;
+      }
+    }},"Mark Paid");
+
+    const tr = el("tr",{},[
+      el("td",{}, subjName),
+      el("td",{}, batchName),
+      el("td",{}, model),
+      el("td",{}, period.label),
+      el("td",{}, "₹ "+fee),
+      el("td",{}, el("div",{class:"row"},[amountI, dateI, noteI, submit])),
+      el("td",{}, msg)
+    ]);
+    tbody.appendChild(tr);
+  }
+
+  wrap.appendChild(table);
+  return wrap;
+}
+
+/* ================== Student: My Receipts (Verified) ================== */
+async function studentReceiptsCard(uid){
+  const wrap = el("div",{class:"card"},[ el("h3",{},"My Receipts (Verified)") ]);
+  const table = el("table");
+  table.appendChild(el("thead",{}, el("tr",{},[
+    el("th",{},"Subject"),
+    el("th",{},"Batch"),
+    el("th",{},"Period"),
+    el("th",{},"Amount"),
+    el("th",{},"Date"),
+    el("th",{},"Receipt")
+  ])));
+  const tbody = el("tbody"); table.appendChild(tbody);
+
+  const qPay = query(collection(db,"payments"), where("uid","==",uid), where("verifiedByAdmin","==",true), orderBy("createdAt","desc"));
+  const paySnap = await getDocs(qPay);
+
+  for(const d of paySnap.docs){
+    const p = d.data();
+    const subjDoc = await getDoc(doc(db,"subjects",p.subjectId));
+    const subjName = subjDoc.exists()? subjDoc.data().name : "(subject)";
+    const batchDoc = p.batchId ? await getDoc(doc(db,"batches",p.batchId)) : null;
+    const batchName = (batchDoc && batchDoc.exists())? batchDoc.data().name : "-";
+
+    const btn = el("button",{class:"btn", onclick:()=>downloadReceipt(currentUser, subjName, batchName, p)},"Download Receipt");
+    tbody.appendChild(el("tr",{},[
+      el("td",{}, subjName),
+      el("td",{}, batchName),
+      el("td",{}, p.periodKey),
+      el("td",{}, "₹ "+p.amount),
+      el("td",{}, p.datePaid),
+      el("td",{}, btn)
+    ]));
+  }
+
+  wrap.appendChild(table);
+  return wrap;
+}
+
+/* ================== Receipt generator (template literal closed) ================== */
+function downloadReceipt(user, subjectName, batchName, p){
+  const w = window.open("", "_blank");
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt</title>
+  <style>
+    body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;line-height:1.5;padding:24px}
+    .box{border:1px solid #e2e8f0;border-radius:12px;padding:16px}
+    h2{margin:0 0 8px 0}
+    .row{display:flex;justify-content:space-between}
+    .muted{color:#64748b;font-size:12px}
+  </style></head><body>
+    <h2>Payment Receipt</h2>
+    <div class="box">
+      <div class="row"><div><b>Student</b><br>${user.email}</div><div><b>Generated</b><br>${new Date().toISOString().slice(0,10)}</div></div>
+      <hr>
+      <div><b>Subject:</b> ${subjectName}</div>
+      <div><b>Batch:</b> ${batchName}</div>
+      <div><b>Period:</b> ${p.periodKey}</div>
+      <div><b>Amount:</b> ₹ ${p.amount}</div>
+      <div><b>Paid on:</b> ${p.datePaid}</div>
+      <div class="muted">Verified by Admin</div>
+    </div>
+    <script>window.print();<\/script>
+  </body></html>`;
+  w.document.write(html);
+  w.document.close();
+}
+
+/* ================== Admin Home composer ================== */
+async function adminHome(){
+  appDiv.innerHTML="";
+  appDiv.appendChild(header());
+  appDiv.appendChild(await adminSettingsCard());
+  appDiv.appendChild(await adminSubjectsCard());
+  appDiv.appendChild(await adminBatchesCard());
+  appDiv.appendChild(await adminStudentsCard());
+  appDiv.appendChild(await adminPaymentsCard());
+}
+
+/* ================== Router & Render ================== */
+async function render(){
+  if(!currentUser){ loginScreen(); return; }
+
+  // ensure user doc exists
+  const uref = doc(db,"users", currentUser.uid);
+  const ud = await getDoc(uref);
+  if(!ud.exists()){
+    await setDoc(uref,{ role:"student", name: currentUser.email, email: currentUser.email });
+  }
+  const role = (await getDoc(uref)).data().role || "student";
+
+  appDiv.innerHTML = "";
+  appDiv.appendChild(header());
+
+  if(role==="admin"){
+    // show admin console (tabs UI is informational only)
+    await adminHome();
+    return;
+  }
+
+  // Student view with tabs
+  const body = el("div",{});
+  if(currentTab==="payments") body.appendChild(await studentPaymentsCard(currentUser.uid));
+  if(currentTab==="receipts") body.appendChild(await studentReceiptsCard(currentUser.uid));
+  appDiv.appendChild(body);
+}
+
+/* ================== App start ================== */
+onAuthStateChanged(auth, (user)=>{
+  currentUser = user || null;
+  if(!currentUser) { loginScreen(); return; }
+  render();
+});
+</script>
 </body>
 </html>
