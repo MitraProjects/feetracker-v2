@@ -253,9 +253,9 @@ input:focus{
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
-/* ================== FIREBASE CONFIG (replace values) ================== */
+/* -------------- REQUIRED: your Firebase config -------------- */
 const firebaseConfig = {
     apiKey: "AIzaSyAeW3aAFG-Ejffz84Zsy1SIHyM2Npx11I4",
     authDomain: "fee-tracker-v3.firebaseapp.com",
@@ -265,162 +265,108 @@ const firebaseConfig = {
     appId: "1:728104140706:web:13ac71568f9d3f959c7cfb",
     measurementId: "G-9Y44Y81DJ1"
   };
+
+/* ------------------------------------------------------------ */
+
 const appFB = initializeApp(firebaseConfig);
 const auth = getAuth(appFB);
 const db = getFirestore(appFB);
 const googleProvider = new GoogleAuthProvider();
 
-/* ================== DOM helpers & globals ================== */
-function el(tag, attrs={}, children=[]) {
-  const e = document.createElement(tag);
-  for (let k in attrs) {
-    if(k==="class") e.className = attrs[k];
-    else if(k.startsWith("on")) e.addEventListener(k.substring(2), attrs[k]);
-    else e.setAttribute(k, attrs[k]);
-  }
-  (Array.isArray(children)?children:[children]).forEach(c => e.appendChild(typeof c==="string"?document.createTextNode(c):c));
-  return e;
-}
 const appDiv = document.getElementById("app");
 let currentUser = null;
 let currentTab = "payments";
-  // TEMP: show any JS errors so the page isn't just blank
+let currentRole = "student";
+
+/* Catch ANY runtime errors (module syntax errors won’t reach this) */
 window.addEventListener('error', e => {
   console.error('JS error:', e.message, e.error);
   alert('JS error: ' + e.message);
 });
-let currentRole = "student";
-  
+window.addEventListener('unhandledrejection', e => {
+  console.error('Promise rejection:', e.reason);
+  alert('Promise rejection: ' + (e.reason?.message || e.reason));
+});
 
-/* ================== Billing utils ================== */
-const FREQ = { monthly:1, tri:3, penta:5 };
-function computePeriod(startISO, freqKey){
-  const stride = FREQ[freqKey]||1;
-  const start = new Date(startISO|| new Date());
-  const now = new Date();
-  const months = (now.getFullYear()-start.getFullYear())*12 + (now.getMonth()-start.getMonth());
-  const blocks = Math.floor(months/stride);
-  const periodStart = new Date(start);
-  periodStart.setMonth(start.getMonth()+blocks*stride);
-  const periodEnd = new Date(periodStart);
-  periodEnd.setMonth(periodStart.getMonth()+stride);
-  const label = `${periodStart.getFullYear()}-${String(periodStart.getMonth()+1).padStart(2,'0')} → ${periodEnd.getFullYear()}-${String(periodEnd.getMonth()+1).padStart(2,'0')}`;
-  const key = `${periodStart.getFullYear()}-${String(periodStart.getMonth()+1).padStart(2,'0')}_m${stride}`;
-  return { periodStart: periodStart.toISOString().slice(0,10), periodEnd: periodEnd.toISOString().slice(0,10), label, key };
-}
-
-/* ================== Header & emblem ================== */
-function krishnaEmblem(){
-  const svgNS='http://www.w3.org/2000/svg';
-  const s=document.createElementNS(svgNS,'svg'); s.setAttribute('viewBox','0 0 128 128'); s.style.height='56px';
-  const face=document.createElementNS(svgNS,'circle'); face.setAttribute('cx','64'); face.setAttribute('cy','60'); face.setAttribute('r','28'); face.setAttribute('fill','#3b82f6');
-  const hair=document.createElementNS(svgNS,'path'); hair.setAttribute('d','M32 56 C40 28, 88 28, 96 56 Z'); hair.setAttribute('fill','#0f172a');
-  const flute=document.createElementNS(svgNS,'rect'); flute.setAttribute('x','26'); flute.setAttribute('y','94'); flute.setAttribute('width','76'); flute.setAttribute('height','6'); flute.setAttribute('rx','3'); flute.setAttribute('fill','#b58b3b');
-  s.append(face,hair,flute); return s;
-}
-function tabBtn(id,label){
-  return el("button",{class:(currentTab===id?"active":""),onclick:()=>{currentTab=id; render();}},label);
-}
-function header(){
-  const titleBox = el('div',{class:'headerLeft'},[
-    el('h2',{},["📒 Fee Tracker"]),
-    el('div',{class:'muted'},["Student self-report system"])
-  ]);
-
-  const emblemBox = el("div",{class:"headerCenter"},[
-    krishnaEmblem(),
-    el("div",{class:"muted",style:"text-align:center;margin-top:4px;font-style:italic"},
-      "With love and gratitude to my Guru")
-  ]);
-
-  // Build the right-side tabs based on role
-  const right = [];
-  // student tabs (always)
-  right.push(tabBtn("payments","My Payments"));
-  right.push(tabBtn("receipts","My Receipts"));
-
-  // admin-only tabs
-  if(currentRole==="admin"){
-    right.push(tabBtn("students","Students"));
-    right.push(tabBtn("subjects","Subjects"));
-    right.push(tabBtn("batches","Batches"));
-    right.push(tabBtn("settings","Settings"));
+/* ---------- tiny DOM helper ---------- */
+function el(tag, attrs={}, children=[]){
+  const e = document.createElement(tag);
+  for (let k in attrs){
+    if (k === "class") e.className = attrs[k];
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
   }
-
-  // logout
-  right.push(el("button",{class:"btn",onclick:()=>{signOut(auth)}}, "Logout"));
-
-  const tabs = el("div",{class:"headerRight row tabs"}, right);
-  return el("div",{class:"card headerRow"},[titleBox, emblemBox, tabs]);
+  (Array.isArray(children)?children:[children]).forEach(c=>e.appendChild(typeof c==="string"?document.createTextNode(c):c));
+  return e;
 }
 
-
-/* ================== Login/Register ================== */
+/* ---------- login screen (your polished version) ---------- */
 function loginScreen(){
   appDiv.innerHTML = "";
-
   const card = el("div",{class:"card auth"},[
     el("h2",{},"Sign in"),
-
     el("div",{class:"form-row"},[
       el("label",{for:"email"},"Email"),
       el("input",{id:"email",type:"email",placeholder:"you@example.com",autocomplete:"email"})
     ]),
-
     el("div",{class:"form-row"},[
       el("label",{for:"password"},"Password"),
       el("input",{id:"password",type:"password",placeholder:"••••••••",autocomplete:"current-password"})
     ]),
-
-    // Row 1
     el("div",{class:"action-grid"},[
       el("button",{class:"btn primary", onclick:()=>loginEmail()},"Sign in"),
       el("button",{class:"btn outline", onclick:()=>loginGoogle()},"Sign in with Google")
     ]),
-
-    // Row 2
     el("div",{class:"action-grid"},[
       el("button",{class:"btn outline", onclick:()=>resetEmail()},"Reset password"),
       el("button",{class:"btn primary", onclick:()=>signupEmail()},"Create account")
     ])
   ]);
-
   const note = el("div",{class:"footer-note"},
     "After creating an account, the admin will enroll you to subjects/batches."
   );
-
   appDiv.appendChild(card);
   appDiv.appendChild(note);
 }
 
+/* ---------- minimal header so we can see logged-in state ---------- */
+function headerMinimal(){
+  return el("div",{class:"card"},[
+    el("h3",{},"Welcome"),
+    el("div",{}, `Signed in as: ${currentUser?.email || ''}`),
+    el("div",{}, `Role: ${currentRole}`),
+    el("div",{class:"row", style:"margin-top:8px"},[
+      el("button",{class:"btn outline", onclick:()=>signOut(auth)},"Logout")
+    ])
+  ]);
+}
 
+/* ---------- auth actions ---------- */
 async function loginEmail(){
-  const email=document.getElementById("email").value;
-  const pw=document.getElementById("password").value;
-  try{ await signInWithEmailAndPassword(auth,email,pw); }catch(e){ alert(e.message); }
+  const email = document.getElementById("email").value;
+  const pw    = document.getElementById("password").value;
+  await signInWithEmailAndPassword(auth, email, pw);
 }
 async function signupEmail(){
-  const email=document.getElementById("email").value;
-  const pw=document.getElementById("password").value;
-  try{
-    const cred = await createUserWithEmailAndPassword(auth,email,pw);
-    await setDoc(doc(db,"users",cred.user.uid),{role:"student",name:email,email});
-  }catch(e){ alert(e.message); }
+  const email = document.getElementById("email").value;
+  const pw    = document.getElementById("password").value;
+  const cred = await createUserWithEmailAndPassword(auth,email,pw);
+  await setDoc(doc(db,"users",cred.user.uid),{role:"student",name:email,email});
+  alert("Account created. You can sign in now.");
 }
 async function resetEmail(){
-  const email=document.getElementById("email").value;
-  if(!email) return alert("Enter your email above first");
-  try{ await sendPasswordResetEmail(auth,email); alert("Reset link sent"); }catch(e){ alert(e.message); }
+  const email = document.getElementById("email").value;
+  if(!email){ alert("Enter your email first"); return; }
+  await sendPasswordResetEmail(auth,email);
+  alert("Reset link sent.");
 }
 /*async function loginGoogle(){
-  try{
-    const res = await signInWithPopup(auth,googleProvider);
-    const uref = doc(db,"users",res.user.uid);
-    const u = await getDoc(uref);
-    if(!u.exists()) await setDoc(uref,{role:"student",name:res.user.displayName||res.user.email,email:res.user.email});
-  }catch(e){ alert(e.message); }
+  const res = await signInWithPopup(auth, googleProvider);
+  const uref = doc(db,"users",res.user.uid);
+  const u = await getDoc(uref);
+  if(!u.exists()) await setDoc(uref,{role:"student",name:res.user.displayName||res.user.email,email:res.user.email});
 }*/
-  async function loginGoogle(){
+async function loginGoogle(){
   try {
     const res = await signInWithPopup(auth, googleProvider);
     const uref = doc(db,"users",res.user.uid);
@@ -444,365 +390,31 @@ async function resetEmail(){
 }
 
 
-/* ================== Admin: Payment Settings (GPay) ================== */
-async function adminSettingsCard(){
-  const wrap = el("div",{class:"card"},[ el("h3",{},"Payment Settings (GPay)") ]);
-  const phoneI = el("input",{placeholder:"+91xxxxxxxxxx"});
-  const qrI    = el("input",{placeholder:"QR image URL (optional)"});
-  const sdoc = await getDoc(doc(db,"settings","app"));
-  if(sdoc.exists()){ phoneI.value = sdoc.data().paymentPhone||""; qrI.value=sdoc.data().qrImageUrl||""; }
-  const saveBtn = el("button",{class:"btn",onclick:async()=>{
-    await setDoc(doc(db,"settings","app"),{paymentPhone:phoneI.value, qrImageUrl:qrI.value},{merge:true});
-    alert("Saved");
-  }},"Save");
-  wrap.append(el("div",{class:"row"},[phoneI, qrI, saveBtn]));
-  return wrap;
-}
+/* ---------- render (minimal) ---------- */
+async function render(){
+  if(!currentUser){ loginScreen(); return; }
 
-/* ================== Admin: Subjects ================== */
-async function adminSubjectsCard(){
-  const wrap = el("div",{class:"card"},[ el("h3",{},"Subjects") ]);
-  const nameI = el("input",{placeholder:"Subject name (e.g., Mahabharata)"});
-  const feeI  = el("input",{placeholder:"Default fee (₹)", type:"number"});
-  const addBtn= el("button",{class:"btn",onclick:async()=>{
-    if(!nameI.value.trim()) return alert("Enter subject name");
-    await addDoc(collection(db,"subjects"),{name:nameI.value.trim(), defaultFee:Number(feeI.value||0)});
-    nameI.value=""; feeI.value=""; render();
-  }},"Add Subject");
-  wrap.append(el("div",{class:"row"},[nameI, feeI, addBtn]));
-
-  const list = el("div");
-  const snap = await getDocs(collection(db,"subjects"));
-  snap.forEach(d=>{
-    const s=d.data();
-    list.append(el("div",{class:"row", style:"justify-content:space-between;border-top:1px solid var(--border);padding-top:8px;margin-top:8px"},[
-      el("div",{},`${s.name} · ₹${s.defaultFee||0}`)
-    ]));
-  });
-  wrap.append(list);
-  return wrap;
-}
-
-/* ================== Admin: Batches & Schedule ================== */
-async function adminBatchesCard(){
-  const wrap = el("div",{class:"card"},[ el("h3",{},"Batches & Schedule") ]);
-  const subjSel = el("select"); subjSel.append(el("option",{value:""},"Select subject"));
-  const sSnap = await getDocs(collection(db,"subjects"));
-  sSnap.forEach(s=> subjSel.append(el("option",{value:s.id}, s.data().name)));
-
-  const nameI = el("input",{placeholder:"Batch name (e.g., Morning)"});
-  const daySel= el("select",{},["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=>el("option",{value:d},d)));
-  const timeI = el("input",{type:"time"});
-  const locI  = el("input",{placeholder:"Location / Zoom link"});
-  const addBtn= el("button",{class:"btn",onclick:async()=>{
-    if(!subjSel.value || !nameI.value.trim()) return alert("Choose subject and batch name");
-    await addDoc(collection(db,"batches"),{subjectId:subjSel.value, name:nameI.value.trim(), day:daySel.value, time:timeI.value||"", location:locI.value||""});
-    nameI.value=""; timeI.value=""; locI.value=""; render();
-  }},"Add Batch");
-  wrap.append(el("div",{class:"row"},[subjSel,nameI,daySel,timeI,locI,addBtn]));
-
-  const list = el("div");
-  const bSnap = await getDocs(collection(db,"batches"));
-  for(const d of bSnap.docs){
-    const b=d.data(); const subj=await getDoc(doc(db,"subjects",b.subjectId));
-    list.append(el("div",{class:"row", style:"border-top:1px solid var(--border);padding-top:8px;margin-top:8px"},[
-      el("div",{},`${subj.data()?.name||"(subject)"} · ${b.name} · ${b.day} ${b.time} @ ${b.location}`)
-    ]));
-  }
-  wrap.append(list);
-  return wrap;
-}
-
-/* ================== Admin: Students & Enrollments ================== */
-async function adminStudentsCard(){
-  const wrap = el("div",{class:"card"},[ el("h3",{},"Students & Enrollments") ]);
-  const list = el("div"); wrap.append(list);
-
-  const usersSnap = await getDocs(collection(db,"users"));
-  for(const udoc of usersSnap.docs){
-    const u = udoc.data(); const uid = udoc.id;
-    const roleSel = el("select",{},[ el("option",{value:"student"},"student"), el("option",{value:"admin"},"admin") ]);
-    roleSel.value = u.role||"student";
-    const saveRole = el("button",{class:"btn",onclick:async()=>{ await updateDoc(doc(db,"users",uid),{role:roleSel.value}); alert("Role saved"); }},"Save role");
-
-    const subjSel = el("select"); subjSel.append(el("option",{value:""},"Select subject"));
-    const sSnap = await getDocs(collection(db,"subjects")); sSnap.forEach(s=> subjSel.append(el("option",{value:s.id}, s.data().name)));
-    const batchSel= el("select"); batchSel.append(el("option",{value:""},"Select batch"));
-    subjSel.addEventListener("change", async ()=>{
-      batchSel.innerHTML=""; batchSel.append(el("option",{value:""},"Select batch"));
-      if(!subjSel.value) return;
-      const qB = query(collection(db,"batches"), where("subjectId","==",subjSel.value));
-      const bSnap= await getDocs(qB); bSnap.forEach(b=> batchSel.append(el("option",{value:b.id}, b.data().name)));
-    });
-
-    const freqSel = el("select",{},[
-      el("option",{value:"monthly"},"Monthly"),
-      el("option",{value:"tri"},"Every 3 months"),
-      el("option",{value:"penta"},"Every 5 months"),
-    ]);
-    const startI = el("input",{type:"date", value:new Date().toISOString().slice(0,10)});
-    const feeI   = el("input",{type:"number", placeholder:"Fee (optional)"});
-    const enrollBtn = el("button",{class:"btn",onclick:async()=>{
-      if(!subjSel.value) return alert("Select subject");
-      await addDoc(collection(db,"enrollments"),{
-        uid, subjectId:subjSel.value, batchId: batchSel.value||null,
-        active:true, startDate:startI.value, frequency:freqSel.value,
-        fee: feeI.value? Number(feeI.value): null
-      });
-      alert("Enrolled"); render();
-    }},"Enroll");
-
-    list.append(el("div",{class:"row", style:"border-top:1px solid var(--border);padding-top:8px;margin-top:8px"},[
-      el("div",{}, `${u.name||u.email} · ${u.email}`),
-      roleSel, saveRole, subjSel, batchSel, freqSel, startI, feeI, enrollBtn
-    ]));
-  }
-  return wrap;
-}
-
-/* ================== Admin: Payments to Verify ================== */
-async function adminPaymentsCard(){
-  const wrap = el("div",{class:"card"},[ el("h3",{},"Payments to Verify") ]);
-  const list = el("div"); wrap.append(list);
-
-  const pSnap = await getDocs(query(collection(db,"payments"), orderBy("createdAt","desc")));
-  for(const d of pSnap.docs){
-    const p = d.data();
-    const userDoc = await getDoc(doc(db,"users",p.uid));
-    const subjDoc = await getDoc(doc(db,"subjects",p.subjectId));
-    list.append(
-      el("div",{class:"row", style:"border-top:1px solid var(--border);padding-top:8px;margin-top:8px;justify-content:space-between"},[
-        el("div",{}, `${userDoc.data()?.name||userDoc.data()?.email} · ${subjDoc.data()?.name||"(subject)"} · ${p.periodKey} · ₹${p.amount} · ${p.datePaid}`),
-        p.verifiedByAdmin
-          ? el("span",{class:"badge"},"Verified")
-          : el("button",{class:"btn",onclick:async()=>{
-              await updateDoc(doc(db,"payments",d.id),{verifiedByAdmin:true});
-              // queue email (optional Firebase Extension will send it)
-              try{
-                await addDoc(collection(db,"mail"),{
-                  to:[userDoc.data()?.email],
-                  message:{
-                    subject:`Fee received — ${subjDoc.data()?.name||""}`,
-                    text:`Dear ${userDoc.data()?.name||""},
-We have verified your payment.
-Subject: ${subjDoc.data()?.name||""}
-Period: ${p.periodKey}
-Amount: ₹${p.amount}
-Date: ${p.datePaid}
-
-Thank you.`,
-                    html:`<p>Dear ${userDoc.data()?.name||""},</p><p>We have <b>verified</b> your payment.</p><ul><li><b>Subject:</b> ${subjDoc.data()?.name||""}</li><li><b>Period:</b> ${p.periodKey}</li><li><b>Amount:</b> ₹${p.amount}</li><li><b>Date:</b> ${p.datePaid}</li></ul><p>Thank you.</p>`
-                  }
-                });
-              }catch(e){ console.warn("Email queue failed:", e.message); }
-              render();
-            }},"Verify")
-      ])
-    );
-  }
-  return wrap;
-}
-
-/* ================== Student: My Payments ================== */
-async function studentPaymentsCard(uid){
-  const wrap = el("div",{class:"card"},[ el("h3",{},"My Payments"), el("div",{class:"muted"},"Submit your payment for the current period. Admin will verify.") ]);
-
-  // GPay details
-  const sdoc = await getDoc(doc(db,"settings","app"));
-  const phone = sdoc.exists()? (sdoc.data().paymentPhone||"") : "";
-  const qrUrl = sdoc.exists()? (sdoc.data().qrImageUrl||"") : "";
-  wrap.append(el("div",{class:"row"},[
-    el("div",{}, ["Pay via GPay to: ", el("b",{}, phone || "(not set)")]),
-    qrUrl ? el("img",{class:"qr",src:qrUrl,alt:"Payment QR"}) : el("span",{class:"muted"},"(QR not configured yet)")
-  ]));
-
-  const table = el("table");
-  table.appendChild(el("thead",{}, el("tr",{},[
-    el("th",{},"Subject"),
-    el("th",{},"Batch"),
-    el("th",{},"Model"),
-    el("th",{},"Current Period"),
-    el("th",{},"Due"),
-    el("th",{},"Report Payment"),
-    el("th",{},"Status")
-  ])));
-  const tbody = el("tbody"); table.appendChild(tbody);
-
-  const qEnr = query(collection(db,"enrollments"), where("uid","==",uid), where("active","==",true));
-  const enrSnap = await getDocs(qEnr);
-
-  for(const d of enrSnap.docs){
-    const e = d.data();
-    const subjDoc = await getDoc(doc(db,"subjects", e.subjectId));
-    const subjName = subjDoc.exists()? subjDoc.data().name : "(subject)";
-    const batchDoc = e.batchId ? await getDoc(doc(db,"batches", e.batchId)) : null;
-    const batchName = (batchDoc && batchDoc.exists())? batchDoc.data().name : "-";
-    const model = e.frequency==="monthly" ? "Monthly" : (e.frequency==="tri" ? "Every 3 months" : "Every 5 months");
-    const fee = e.fee ?? (subjDoc.exists()? (subjDoc.data().defaultFee||0) : 0);
-    const period = computePeriod(e.startDate, e.frequency);
-
-    const amountI = el("input",{type:"number", placeholder:String(fee)});
-    const dateI   = el("input",{type:"date", value:new Date().toISOString().slice(0,10)});
-    const noteI   = el("input",{placeholder:"Reference / UPI / note"});
-    const msg     = el("div",{class:"muted"});
-
-    const submit = el("button",{class:"btn", onclick:async()=>{
-      try{
-        await addDoc(collection(db,"payments"),{
-          uid, subjectId:e.subjectId, batchId: e.batchId||null,
-          periodKey: period.key, amount: Number(amountI.value||fee),
-          datePaid: dateI.value, note: noteI.value||"",
-          createdAt: serverTimestamp(), verifiedByAdmin:false
-        });
-        msg.textContent = "Submitted. Awaiting admin verification.";
-        amountI.value = ""; noteI.value = "";
-      }catch(err){
-        msg.textContent = err.message;
-      }
-    }},"Mark Paid");
-
-    const tr = el("tr",{},[
-      el("td",{}, subjName),
-      el("td",{}, batchName),
-      el("td",{}, model),
-      el("td",{}, period.label),
-      el("td",{}, "₹ "+fee),
-      el("td",{}, el("div",{class:"row"},[amountI, dateI, noteI, submit])),
-      el("td",{}, msg)
-    ]);
-    tbody.appendChild(tr);
+  // ensure user doc exists and read role
+  const uref = doc(db,"users", currentUser.uid);
+  const ud = await getDoc(uref);
+  if(!ud.exists()){
+    await setDoc(uref,{ role:"student", name: currentUser.email, email: currentUser.email });
+    currentRole = "student";
+  }else{
+    currentRole = ud.data().role || "student";
   }
 
-  wrap.appendChild(table);
-  return wrap;
+  appDiv.innerHTML = "";
+  appDiv.appendChild(headerMinimal());
+  // (Later we’ll insert the full admin/student modules here)
 }
 
-/* ================== Student: My Receipts (Verified) ================== */
-async function studentReceiptsCard(uid){
-  const wrap = el("div",{class:"card"},[ el("h3",{},"My Receipts (Verified)") ]);
-  const table = el("table");
-  table.appendChild(el("thead",{}, el("tr",{},[
-    el("th",{},"Subject"),
-    el("th",{},"Batch"),
-    el("th",{},"Period"),
-    el("th",{},"Amount"),
-    el("th",{},"Date"),
-    el("th",{},"Receipt")
-  ])));
-  const tbody = el("tbody"); table.appendChild(tbody);
-
-  const qPay = query(collection(db,"payments"), where("uid","==",uid), where("verifiedByAdmin","==",true), orderBy("createdAt","desc"));
-  const paySnap = await getDocs(qPay);
-
-  for(const d of paySnap.docs){
-    const p = d.data();
-    const subjDoc = await getDoc(doc(db,"subjects",p.subjectId));
-    const subjName = subjDoc.exists()? subjDoc.data().name : "(subject)";
-    const batchDoc = p.batchId ? await getDoc(doc(db,"batches",p.batchId)) : null;
-    const batchName = (batchDoc && batchDoc.exists())? batchDoc.data().name : "-";
-
-    const btn = el("button",{class:"btn", onclick:()=>downloadReceipt(currentUser, subjName, batchName, p)},"Download Receipt");
-    tbody.appendChild(el("tr",{},[
-      el("td",{}, subjName),
-      el("td",{}, batchName),
-      el("td",{}, p.periodKey),
-      el("td",{}, "₹ "+p.amount),
-      el("td",{}, p.datePaid),
-      el("td",{}, btn)
-    ]));
-  }
-
-  wrap.appendChild(table);
-  return wrap;
-}
-
-/* ================== Receipt generator (template literal closed) ================== */
-function downloadReceipt(user, subjectName, batchName, p){
-  const w = window.open("", "_blank");
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt</title>
-  <style>
-    body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;line-height:1.5;padding:24px}
-    .box{border:1px solid #e2e8f0;border-radius:12px;padding:16px}
-    h2{margin:0 0 8px 0}
-    .row{display:flex;justify-content:space-between}
-    .muted{color:#64748b;font-size:12px}
-  </style></head><body>
-    <h2>Payment Receipt</h2>
-    <div class="box">
-      <div class="row"><div><b>Student</b><br>${user.email}</div><div><b>Generated</b><br>${new Date().toISOString().slice(0,10)}</div></div>
-      <hr>
-      <div><b>Subject:</b> ${subjectName}</div>
-      <div><b>Batch:</b> ${batchName}</div>
-      <div><b>Period:</b> ${p.periodKey}</div>
-      <div><b>Amount:</b> ₹ ${p.amount}</div>
-      <div><b>Paid on:</b> ${p.datePaid}</div>
-      <div class="muted">Verified by Admin</div>
-    </div>
-    <script>window.print();<\/script>
-  </body></html>`;
-  w.document.write(html);
-  w.document.close();
-}
-
-/* ================== Admin Home composer ================== */
-async function adminHome(){
-  appDiv.innerHTML="";
-  appDiv.appendChild(header());
-  appDiv.appendChild(await adminSettingsCard());
-  appDiv.appendChild(await adminSubjectsCard());
-  appDiv.appendChild(await adminBatchesCard());
-  appDiv.appendChild(await adminStudentsCard());
-  appDiv.appendChild(await adminPaymentsCard());
-}
-
-/* ================== Router & Render ================== */
-function header(){
-  const titleBox = el('div',{class:'headerLeft'},[
-    el('h2',{},["📒 Fee Tracker"]),
-    el('div',{class:'muted'},["Student self-report system"])
-  ]);
-
-  const emblemBox = el("div",{class:"headerCenter"},[
-    krishnaEmblem(),
-    el("div",{class:"muted",style:"text-align:center;margin-top:4px;font-style:italic"},
-      "With love and gratitude to my Guru")
-  ]);
-
-  // Build the right-side tabs based on role
-  const right = [];
-  // student tabs (always)
-  right.push(tabBtn("payments","My Payments"));
-  right.push(tabBtn("receipts","My Receipts"));
-
-  // admin-only tabs
-  if(currentRole==="admin"){
-    right.push(tabBtn("students","Students"));
-    right.push(tabBtn("subjects","Subjects"));
-    right.push(tabBtn("batches","Batches"));
-    right.push(tabBtn("settings","Settings"));
-  }
-
-  // logout
-  right.push(el("button",{class:"btn",onclick:()=>{signOut(auth)}}, "Logout"));
-
-  const tabs = el("div",{class:"headerRight row tabs"}, right);
-  return el("div",{class:"card headerRow"},[titleBox, emblemBox, tabs]);
-}
-
-
-  // Student view with tabs
-  const body = el("div",{});
-  if(currentTab==="payments") body.appendChild(await studentPaymentsCard(currentUser.uid));
-  if(currentTab==="receipts") body.appendChild(await studentReceiptsCard(currentUser.uid));
-  appDiv.appendChild(body);
-}
-
-/* ================== App start ================== */
+/* ---------- app start ---------- */
 onAuthStateChanged(auth, (user)=>{
   currentUser = user || null;
-  if(!currentUser) { loginScreen(); return; }
   render();
 });
+
 </script>
 </body>
 </html>
