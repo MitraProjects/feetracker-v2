@@ -284,12 +284,13 @@ function el(tag, attrs={}, children=[]) {
 const appDiv = document.getElementById("app");
 let currentUser = null;
 let currentTab = "payments";
-let currentRole = "student";
   // TEMP: show any JS errors so the page isn't just blank
 window.addEventListener('error', e => {
   console.error('JS error:', e.message, e.error);
   alert('JS error: ' + e.message);
 });
+let currentRole = "student";
+  
 
 /* ================== Billing utils ================== */
 const FREQ = { monthly:1, tri:3, penta:5 };
