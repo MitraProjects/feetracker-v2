@@ -412,14 +412,37 @@ async function resetEmail(){
   if(!email) return alert("Enter your email above first");
   try{ await sendPasswordResetEmail(auth,email); alert("Reset link sent"); }catch(e){ alert(e.message); }
 }
-async function loginGoogle(){
+/*async function loginGoogle(){
   try{
     const res = await signInWithPopup(auth,googleProvider);
     const uref = doc(db,"users",res.user.uid);
     const u = await getDoc(uref);
     if(!u.exists()) await setDoc(uref,{role:"student",name:res.user.displayName||res.user.email,email:res.user.email});
   }catch(e){ alert(e.message); }
+}*/
+  async function loginGoogle(){
+  try {
+    const res = await signInWithPopup(auth, googleProvider);
+    const uref = doc(db,"users",res.user.uid);
+    const u = await getDoc(uref);
+    if(!u.exists()) {
+      await setDoc(uref,{
+        role:"student",
+        name:res.user.displayName || res.user.email || "Student",
+        email:res.user.email || ""
+      });
+    }
+  } catch (e) {
+    console.error("Google sign-in error:", e.code, e.message);
+    alert("Google sign-in failed: " + e.code + "\n" +
+      "Tips:\n" +
+      "• Use your GitHub Pages URL or localhost (not file://)\n" +
+      "• Enable Google provider in Firebase Auth\n" +
+      "• Set a Support Email in Google provider\n" +
+      "• Add your domain in Authorized domains");
+  }
 }
+
 
 /* ================== Admin: Payment Settings (GPay) ================== */
 async function adminSettingsCard(){
