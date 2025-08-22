@@ -38,7 +38,15 @@ import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWith
 import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 // ⬇️ REPLACE THIS with your project's config
-const firebaseConfig = { apiKey:"PASTE_API_KEY", authDomain:"PASTE_PROJECT.firebaseapp.com", projectId:"PASTE_PROJECT", storageBucket:"PASTE_PROJECT.appspot.com", messagingSenderId:"", appId:"" };
+const firebaseConfig = {
+    apiKey: "AIzaSyAeW3aAFG-Ejffz84Zsy1SIHyM2Npx11I4",
+    authDomain: "fee-tracker-v3.firebaseapp.com",
+    projectId: "fee-tracker-v3",
+    storageBucket: "fee-tracker-v3.firebasestorage.app",
+    messagingSenderId: "728104140706",
+    appId: "1:728104140706:web:13ac71568f9d3f959c7cfb",
+    measurementId: "G-9Y44Y81DJ1"
+  };
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
