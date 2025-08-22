@@ -284,6 +284,7 @@ function el(tag, attrs={}, children=[]) {
 const appDiv = document.getElementById("app");
 let currentUser = null;
 let currentTab = "payments";
+let currentRole = "student";
 
 /* ================== Billing utils ================== */
 const FREQ = { monthly:1, tri:3, penta:5 };
@@ -319,21 +320,34 @@ function header(){
     el('h2',{},["📒 Fee Tracker"]),
     el('div',{class:'muted'},["Student self-report system"])
   ]);
+
   const emblemBox = el("div",{class:"headerCenter"},[
     krishnaEmblem(),
-    el("div",{class:"muted",style:"text-align:center;margin-top:4px;font-style:italic"}, "With love and gratitude to my Guru")
+    el("div",{class:"muted",style:"text-align:center;margin-top:4px;font-style:italic"},
+      "With love and gratitude to my Guru")
   ]);
-  const tabs = el("div",{class:"headerRight row tabs"},[
-    tabBtn("payments","My Payments"),
-    tabBtn("receipts","My Receipts"),
-    tabBtn("students","Students"),   // admin
-    tabBtn("subjects","Subjects"),   // admin
-    tabBtn("batches","Batches"),     // admin
-    tabBtn("settings","Settings"),   // admin
-    el("button",{class:"btn",onclick:()=>{signOut(auth)}}, "Logout")
-  ]);
+
+  // Build the right-side tabs based on role
+  const right = [];
+  // student tabs (always)
+  right.push(tabBtn("payments","My Payments"));
+  right.push(tabBtn("receipts","My Receipts"));
+
+  // admin-only tabs
+  if(currentRole==="admin"){
+    right.push(tabBtn("students","Students"));
+    right.push(tabBtn("subjects","Subjects"));
+    right.push(tabBtn("batches","Batches"));
+    right.push(tabBtn("settings","Settings"));
+  }
+
+  // logout
+  right.push(el("button",{class:"btn",onclick:()=>{signOut(auth)}}, "Logout"));
+
+  const tabs = el("div",{class:"headerRight row tabs"}, right);
   return el("div",{class:"card headerRow"},[titleBox, emblemBox, tabs]);
 }
+
 
 /* ================== Login/Register ================== */
 function loginScreen(){
@@ -713,25 +727,39 @@ async function adminHome(){
 }
 
 /* ================== Router & Render ================== */
-async function render(){
-  if(!currentUser){ loginScreen(); return; }
+function header(){
+  const titleBox = el('div',{class:'headerLeft'},[
+    el('h2',{},["📒 Fee Tracker"]),
+    el('div',{class:'muted'},["Student self-report system"])
+  ]);
 
-  // ensure user doc exists
-  const uref = doc(db,"users", currentUser.uid);
-  const ud = await getDoc(uref);
-  if(!ud.exists()){
-    await setDoc(uref,{ role:"student", name: currentUser.email, email: currentUser.email });
+  const emblemBox = el("div",{class:"headerCenter"},[
+    krishnaEmblem(),
+    el("div",{class:"muted",style:"text-align:center;margin-top:4px;font-style:italic"},
+      "With love and gratitude to my Guru")
+  ]);
+
+  // Build the right-side tabs based on role
+  const right = [];
+  // student tabs (always)
+  right.push(tabBtn("payments","My Payments"));
+  right.push(tabBtn("receipts","My Receipts"));
+
+  // admin-only tabs
+  if(currentRole==="admin"){
+    right.push(tabBtn("students","Students"));
+    right.push(tabBtn("subjects","Subjects"));
+    right.push(tabBtn("batches","Batches"));
+    right.push(tabBtn("settings","Settings"));
   }
-  const role = (await getDoc(uref)).data().role || "student";
 
-  appDiv.innerHTML = "";
-  appDiv.appendChild(header());
+  // logout
+  right.push(el("button",{class:"btn",onclick:()=>{signOut(auth)}}, "Logout"));
 
-  if(role==="admin"){
-    // show admin console (tabs UI is informational only)
-    await adminHome();
-    return;
-  }
+  const tabs = el("div",{class:"headerRight row tabs"}, right);
+  return el("div",{class:"card headerRow"},[titleBox, emblemBox, tabs]);
+}
+
 
   // Student view with tabs
   const body = el("div",{});
